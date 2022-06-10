@@ -1,16 +1,16 @@
 use clippy_utils::diagnostics::span_lint_and_sugg;
-use clippy_utils::source::snippet_with_context;
 use clippy_utils::is_diag_trait_item;
+use clippy_utils::source::snippet_with_context;
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
-use rustc_span::sym;
 use rustc_middle::ty;
+use rustc_span::sym;
 
 use super::SUSPICIOUS_TO_OWNED;
 
-pub fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) {
+pub fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) -> bool {
     if_chain! {
         if let Some(method_def_id) = cx.typeck_results().type_dependent_def_id(expr.hir_id);
         if is_diag_trait_item(cx, method_def_id, sym::ToOwned);
@@ -24,11 +24,13 @@ pub fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) {
                 cx,
                 SUSPICIOUS_TO_OWNED,
                 expr.span,
-                &format!("this call to `to_owned` does not cause the {} contents to become owned.", input_type),
+                &format!("this call to `to_owned` does not cause the {} contents to become owned", input_type),
                 "consider using",
                 format!("{}.into_owned()", recv_snip),
                 app,
             );
+            return true;
         }
     }
+    false
 }

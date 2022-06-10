@@ -2754,12 +2754,13 @@ impl Methods {
                     }
                 },
                 ("take", []) => needless_option_take::check(cx, expr, recv),
-                ("to_os_string" | "to_owned" | "to_path_buf" | "to_vec", []) => {
-                    implicit_clone::check(cx, name, expr, recv);
-
-                    if name == "to_owned" {
-                        suspicious_to_owned::check(cx, expr, recv);
+                ("to_owned", []) => {
+                    if !suspicious_to_owned::check(cx, expr, recv) {
+                        implicit_clone::check(cx, name, expr, recv);
                     }
+                },
+                ("to_os_string" | "to_path_buf" | "to_vec", []) => {
+                    implicit_clone::check(cx, name, expr, recv);
                 },
                 ("unwrap", []) => {
                     match method_call(recv) {
