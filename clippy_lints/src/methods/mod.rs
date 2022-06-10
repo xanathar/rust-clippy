@@ -62,6 +62,7 @@ mod str_splitn;
 mod string_extend_chars;
 mod suspicious_map;
 mod suspicious_splitn;
+mod suspicious_to_owned;
 mod uninit_assumed_init;
 mod unnecessary_filter_map;
 mod unnecessary_fold;
@@ -1963,6 +1964,53 @@ declare_clippy_lint! {
 
 declare_clippy_lint! {
     /// ### What it does
+    /// Checks for the usage of `_.to_owned()`, on a `Cow<'_, _>`.
+    ///
+    /// ### Why is this bad?
+    /// `Cow`s can contain either `Borrowed` data or `Owned` data.
+    /// The `into_owned()` method on a `Cow` can be used to clone the
+    /// underlying data and become a `Cow::Owned`. Calling `to_owned()`,
+    /// on the other hand, clones the `Cow` itself, rather than the
+    /// contained data.
+    /// Given the similar naming, the use of `to_owned()` is suspicious
+    /// and can potentially lead to undefined behavior if it's
+    /// inadvertently used on data coming from unsafe contexts.
+    /// Consider replacing `to_owned` with `into_owned` if the desired
+    /// result is getting a `Cow::Owned`, or explitly calling `clone()`
+    /// if the desired result is cloning the `Cow`.
+    ///
+    /// ### Example
+    /// ```rust
+    /// let s = "Hello world!";
+    /// let cow = Cow::Borrowed(s);
+    ///
+    /// let data = cow.to_owned();
+    /// assert!(matches!(data, Cow::Borrowed(_)))
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// let s = "Hello world!";
+    /// let cow = Cow::Borrowed(s);
+    ///
+    /// let data = cow.into_owned();
+    /// assert!(matches!(data, Cow::Owned(_)))
+    /// ```
+    /// or
+    /// ```rust
+    /// let s = "Hello world!";
+    /// let cow = Cow::Borrowed(s);
+    ///
+    /// let data = cow.clone();
+    /// assert!(matches!(data, Cow::Borrowed(_)))
+    /// ```
+    #[clippy::version = "1.63.0"]
+    pub SUSPICIOUS_TO_OWNED,
+    suspicious,
+    "calls to `to_owned` on a `Cow<'_, _>` might not do what they are expected"
+}
+
+declare_clippy_lint! {
+    /// ### What it does
     /// Checks for calls to [`splitn`]
     /// (https://doc.rust-lang.org/std/primitive.str.html#method.splitn) and
     /// related functions with either zero or one splits.
@@ -2708,6 +2756,10 @@ impl Methods {
                 ("take", []) => needless_option_take::check(cx, expr, recv),
                 ("to_os_string" | "to_owned" | "to_path_buf" | "to_vec", []) => {
                     implicit_clone::check(cx, name, expr, recv);
+
+                    if name == "to_owned" {
+                        suspicious_to_owned::check(cx, expr, recv);
+                    }
                 },
                 ("unwrap", []) => {
                     match method_call(recv) {
