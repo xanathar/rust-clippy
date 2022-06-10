@@ -27,6 +27,7 @@ store.register_group(true, "clippy::suspicious", Some("clippy_suspicious"), vec!
     LintId::of(matches::SIGNIFICANT_DROP_IN_SCRUTINEE),
     LintId::of(methods::NO_EFFECT_REPLACE),
     LintId::of(methods::SUSPICIOUS_MAP),
+    LintId::of(methods::SUSPICIOUS_TO_OWNED),
     LintId::of(mut_key::MUTABLE_KEY_TYPE),
     LintId::of(octal_escapes::OCTAL_ESCAPES),
     LintId::of(rc_clone_in_vec_init::RC_CLONE_IN_VEC_INIT),
